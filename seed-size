@@ -87,6 +87,15 @@ def filter_packages(package_list, apt_cache):
         filtered_list.append(pkg_name)
     return filtered_list
 
+
+def compute_install_size(package_list, apt_cache):
+    '''Return additional install size from the package_list, including deps'''
+    for pkg_name in package_list:
+        pkg = apt_cache[pkg_name]
+        pkg.mark_install()
+    return apt_cache.required_download
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Count the compressed diff size between current installation and " +
                                                  "what the seed file requires")
@@ -106,4 +115,7 @@ if __name__ == '__main__':
     all_pkgs = extract_package_list(seed_file)
 
     cache = apt.Cache()
-    print(filter_packages(all_pkgs, cache))
+    filtered_pkgs = filter_packages(all_pkgs, cache)
+
+    print("{} Mo".format(compute_install_size(filtered_pkgs, cache) / (1024 * 1024)))
+    cache.clear()
