@@ -20,9 +20,12 @@
 
 import argparse
 from contextlib import suppress
+import logging
 import os
 import re
 import sys
+
+logger = logging.getLogger(__name__)
 
 
 def extract_package_list(seed_file):
@@ -51,7 +54,7 @@ def extract_package_list(seed_file):
                     for value in substitutions[key]:
                         declared_pkgs.append(pkg_name.replace("${" + key + "}", value))
                 except KeyError:
-                    print("{} hasn't been declared before {}. Exiting".format(key, pkg_name))
+                    logger.error("{} hasn't been declared before {}. Exiting".format(key, pkg_name))
                     sys.exit(1)
                 continue
             # last: package name with no substitution
@@ -63,9 +66,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Count the compressed diff size between current installation and " +
                                                  "what the seed file requires")
     parser.add_argument('file', help="Path to the file in a seed format")
+    parser.add_argument("-d", "--debug", action="store_true", help="Add debug infos")
     args = parser.parse_args()
-    seed_file = args.file
 
+    log_level = logging.INFO
+    if args.debug:
+        log_level = logging.DEBUG
+    logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
+
+    seed_file = args.file
     if not os.path.isfile(seed_file):
         print("{} doesn't exit".format(seed_file))
         sys.exit(1)
