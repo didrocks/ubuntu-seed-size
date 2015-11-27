@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright (C) 2015 Canonical
+#
+# Authors:
+#  Didier Roche
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation; version 3.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+import argparse
+from contextlib import suppress
+import os
+import re
+import sys
+
+
+def extract_package_list(seed_file):
+    '''Extract root package list (which can pull new deps) from the seed'''
+    # we only treat one subtitution per line (the seed doesn't handle more)
+    declared_pkgs = []
+    substitution_re = re.compile("\${(.*)}")
+    substitutions = {}
+    with open(seed_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line.startswith("*"):
+                continue
+            line = line[1:].strip()
+            # new subtitution definition
+            with suppress(ValueError):
+                key, values = line.split(':')
+                substitutions[key] = [value.strip() for value in values.split(',')]
+                continue
+            pkg_name = line
+            # we only treat one subtitution per line (the seed doesn't handle more)
+            res = substitution_re.search(pkg_name)
+            with suppress(AttributeError):
+                key = res.group(1)
+                try:
+                    for value in substitutions[key]:
+                        declared_pkgs.append(pkg_name.replace("${" + key + "}", value))
+                except KeyError:
+                    print("{} hasn't been declared before {}. Exiting".format(key, pkg_name))
+                    sys.exit(1)
+                continue
+            # last: package name with no substitution
+            declared_pkgs.append(pkg_name)
+
+    return declared_pkgs
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Count the compressed diff size between current installation and " +
+                                                 "what the seed file requires")
+    parser.add_argument('file', help="Path to the file in a seed format")
+    args = parser.parse_args()
+    seed_file = args.file
+
+    if not os.path.isfile(seed_file):
+        print("{} doesn't exit".format(seed_file))
+        sys.exit(1)
+    print(extract_package_list(seed_file))
