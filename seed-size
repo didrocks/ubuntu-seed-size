@@ -18,6 +18,7 @@
 # this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+import apt
 import argparse
 from contextlib import suppress
 import logging
@@ -62,6 +63,30 @@ def extract_package_list(seed_file):
 
     return declared_pkgs
 
+
+def filter_packages(package_list, apt_cache):
+    '''Filter input package list by excluding already installed package and those in universe'''
+    filtered_list = []
+    for pkg_name in package_list:
+        if pkg_name not in apt_cache:
+            logger.warning("{} isn't available in the archive".format(pkg_name))
+            continue
+        pkg = apt_cache[pkg_name]
+        # discare installed packages
+        if pkg.is_installed:
+            logger.debug("{} is already installed".format(pkg_name))
+            continue
+        # discare if package only available in universe
+        in_universe = True
+        for origin in pkg.candidate.origins:
+            if origin.origin == 'Ubuntu' and origin.component == 'main':
+                in_universe = False
+        if in_universe:
+            logger.info("{} is in universe, discare".format(pkg_name))
+            continue
+        filtered_list.append(pkg_name)
+    return filtered_list
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Count the compressed diff size between current installation and " +
                                                  "what the seed file requires")
@@ -78,4 +103,7 @@ if __name__ == '__main__':
     if not os.path.isfile(seed_file):
         print("{} doesn't exit".format(seed_file))
         sys.exit(1)
-    print(extract_package_list(seed_file))
+    all_pkgs = extract_package_list(seed_file)
+
+    cache = apt.Cache()
+    print(filter_packages(all_pkgs, cache))
