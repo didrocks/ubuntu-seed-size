@@ -120,6 +120,6 @@ if __name__ == '__main__':
     print("Packages to install:")
     print(", ".join(filtered_pkgs))
 
-    print("Estimated additional compressed size on live: {:.2f} Mo".format(compute_install_size(filtered_pkgs, cache) /
+    print("Estimated additional compressed size on live: {:.2f} Mb".format(compute_install_size(filtered_pkgs, cache) /
                                                                            (1024 * 1024)))
     cache.clear()
