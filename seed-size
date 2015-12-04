@@ -44,7 +44,7 @@ def extract_package_list(seed_file):
             # new subtitution definition
             with suppress(ValueError):
                 key, values = line.split(':')
-                substitutions[key] = [value.strip() for value in values.split(',')]
+                substitutions[key] = [value.strip() for value in values.split()]
                 continue
             pkg_name = line
             # we only treat one subtitution per line (the seed doesn't handle more)
